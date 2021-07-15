@@ -21,8 +21,6 @@ public class AdminLogin {
 	private JTextField textField;
 	private JPasswordField passwordField;
 	
-	private DBConnector dbConn;
-	
 	/**
 	 * Launch the application.
 	 */
@@ -41,24 +39,20 @@ public class AdminLogin {
 
 	/**
 	 * Create the application.
+	 * @throws SQLException 
+	 * @throws ClassNotFoundException 
 	 */
-	public AdminLogin() {
+	public AdminLogin() throws ClassNotFoundException, SQLException {
 		initialize();
 	}
 
 	/**
 	 * Initialize the contents of the frame.
+	 * @throws SQLException 
+	 * @throws ClassNotFoundException 
 	 */
-	private void initialize() {
-		try {
-			dbConn = new DBConnector();
-		} catch (ClassNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (SQLException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+	private void initialize() throws ClassNotFoundException, SQLException {
+		AdminLoginController adminLoginController = new AdminLoginController();
 		
 		frame = new JFrame();
 		frame.setBounds(100, 100, 700, 400);
@@ -111,7 +105,7 @@ public class AdminLogin {
 				String email = textField.getText();
 				String password = passwordField.getText();
 				
-				ResultSet result = dbConn.execute(String.format("select * from admins where email='%s' and password='%s'", email, password));
+				ResultSet result = adminLoginController.authenticate(email, password);
 				
 				try {
 					if(result.next()) {
@@ -122,6 +116,9 @@ public class AdminLogin {
 						lblNewLabel_3.setText("email or password is incorrect");
 					}
 				} catch (SQLException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				} catch (ClassNotFoundException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}

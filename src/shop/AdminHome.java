@@ -36,7 +36,6 @@ public class AdminHome extends JFrame {
 	private JTextField item_name_field;
 	private JTextField item_price_field;
 	private JTextField item_stock_field;
-	private DBConnector dbConn;
 	private JTextField update_item_id_field;
 	private JTextField update_item_stock_field;
 	private JTextField update_item_price_field;
@@ -44,7 +43,7 @@ public class AdminHome extends JFrame {
 	private JTable table;
 	private DefaultTableModel tableModel;
 	private JTextField searchField;
-
+	private AdminHomeController adminHomeController;
 	/**
 	 * Launch the application.
 	 */
@@ -63,18 +62,12 @@ public class AdminHome extends JFrame {
 
 	/**
 	 * Create the frame.
+	 * @throws SQLException 
+	 * @throws ClassNotFoundException 
 	 */
-	public AdminHome() {
+	public AdminHome() throws ClassNotFoundException, SQLException {
 		
-		try {
-			dbConn = new DBConnector();
-		} catch (ClassNotFoundException e2) {
-			// TODO Auto-generated catch block
-			e2.printStackTrace();
-		} catch (SQLException e2) {
-			// TODO Auto-generated catch block
-			e2.printStackTrace();
-		}
+		adminHomeController = new AdminHomeController();
 		
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 700, 400);
@@ -187,7 +180,7 @@ public class AdminHome extends JFrame {
 				item.setStock(new BigDecimal(item_stock_field.getText()));
 				
 				try {
-					dbConn.executeUpdate(String.format("insert into items(id, name, stock, price) values(%s, '%s', %s, %s)", item.getId().toString(), item.getName(), item.getStock().toString(), item.getPrice().toString()));
+					adminHomeController.addItem(item);
 					new JOptionPane().showMessageDialog(null, "data has been added");
 				} catch (SQLException e1) {
 					// TODO Auto-generated catch block
@@ -232,7 +225,7 @@ public class AdminHome extends JFrame {
 		scrollPane.setViewportView(table);
 		tableModel = (DefaultTableModel) table.getModel();
 		
-		ResultSet result = dbConn.execute("select * from items");
+		ResultSet result = adminHomeController.indexItem();
 		
 		try {
 			while(result.next()) {
@@ -258,7 +251,7 @@ public class AdminHome extends JFrame {
 			public void actionPerformed(ActionEvent e) {
 				tableModel.setNumRows(0);
 				String q = searchField.getText();
-				ResultSet result = dbConn.execute("select * from items where name like '%"+q+"%' or id like '%"+q+"%'");
+				ResultSet result = adminHomeController.searchItems(q);
 				
 				try {
 					while(result.next()) {
@@ -386,24 +379,7 @@ public class AdminHome extends JFrame {
 			public void actionPerformed(ActionEvent e) {
 				String user_id = top_up_user_id.getText();
 				String amount = comboBox.getSelectedItem().toString();
-				ResultSet result = dbConn.execute(String.format("select * from customers where id=%s", user_id));
-				
-				try {
-					if(result.next()) {
-						Customer customer = new Customer();
-						customer.setBalance(result.getBigDecimal("balance").add(new BigDecimal(amount)));
-						customer.setId(result.getBigDecimal("id"));
-						
-						dbConn.executeUpdate(String.format("update customers set balance='%s' where id=%s", customer.getBalance().toString(), customer.getId().toString()));
-						new JOptionPane().showMessageDialog(null, "data has been updated");
-					}
-					else {
-						new JOptionPane().showMessageDialog(null, "data is not found");
-					}
-				} catch (SQLException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
+				adminHomeController.topUpUser(user_id, amount);
 			}
 		});
 		sl_panel_4.putConstraint(SpringLayout.NORTH, btnNewButton_5, 24, SpringLayout.SOUTH, comboBox);
@@ -436,26 +412,8 @@ public class AdminHome extends JFrame {
 				
 				Item item = new Item();
 				item.setId(new BigDecimal(update_item_id_field.getText()));
-				
-				ResultSet result = dbConn.execute(String.format("select * from items where id=%s", item.getId().toString()));
-				try {
-					if(result.next()) {
-						item.setPrice(result.getBigDecimal("price"));
-						item.setStock(result.getBigDecimal("stock"));
-					}
-				} catch (SQLException e2) {
-					// TODO Auto-generated catch block
-					e2.printStackTrace();
-				}
-				
-				item.setStock(item.getStock().add(new BigDecimal(update_item_stock_field.getText())));
-				
-				try {
-					dbConn.executeUpdate(String.format("update items set stock='%s' where id=%s", item.getStock().toString(), item.getId().toString()));
-				} catch (SQLException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
+				String amount  = update_item_stock_field.getText();
+				adminHomeController.addStock(item, amount);
 				updateTable();
 				new JOptionPane().showMessageDialog(null, "data has been updated");
 			}
@@ -465,26 +423,8 @@ public class AdminHome extends JFrame {
 			public void actionPerformed(ActionEvent e) {
 				Item item = new Item();
 				item.setId(new BigDecimal(update_item_id_field.getText()));
-				
-				ResultSet result = dbConn.execute(String.format("select * from items where id=%s", item.getId().toString()));
-				try {
-					if(result.next()) {
-						item.setPrice(result.getBigDecimal("price"));
-						item.setStock(result.getBigDecimal("stock"));
-					}
-				} catch (SQLException e2) {
-					// TODO Auto-generated catch block
-					e2.printStackTrace();
-				}
-				
-				item.setPrice(new BigDecimal(update_item_price_field.getText()));
-				
-				try {
-					dbConn.executeUpdate(String.format("update items set price='%s' where id=%s", item.getPrice().toString(), item.getId().toString()));
-				} catch (SQLException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
+				String price = update_item_price_field.getText();
+				adminHomeController.updatePrice(item, price);
 				updateTable();
 				new JOptionPane().showMessageDialog(null, "data has been updated");
 			}
@@ -493,7 +433,7 @@ public class AdminHome extends JFrame {
 	}
 	
 	public void updateTable() {
-		ResultSet items = dbConn.execute("select * from items");
+		ResultSet items = adminHomeController.indexItem();
 		tableModel.setNumRows(0);
 		try {
 			while(items.next()) {
